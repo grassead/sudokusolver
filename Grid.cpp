@@ -28,19 +28,24 @@ Grid::~Grid()
 
 void Grid::dump()
 {
-	printf("+-----------------+\n");
+	printf(" +---------------------+\n");
 	for (int i = 0; i < 9; i++) {
-		printf("|");
 		for (int j = 0; j < 9; j++) {
+			if (j % 3 == 0) {
+				printf(" |");
+			}
 			if (mCells[i][j]->getValue() != 0) {
 				printf("%d|", mCells[i][j]->getValue());
 			} else {
-				printf(" |");
+				printf("\033[31m%d\e[0m|", mCells[i][j]->getValue());
 			}
+		}
+		if (((i+1) % 3 == 0) && i != 8) {
+			printf("\n");
 		}
 		printf("\n");
 	}
-	printf("+-----------------+\n");
+	printf(" +---------------------+\n");
 }
 
 void Grid::advancedDump()
