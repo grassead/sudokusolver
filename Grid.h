@@ -21,6 +21,11 @@ private:
 
 	bool basicResolve();
 
+	bool isAUniqueSolution(int value, int x, int y);
+	bool isAUniqueSolutionInVerticalRaw(int value, int x, int y);
+	bool isAUniqueSolutionInHorizontalRaw(int value, int x, int y);
+	bool isAUniqueSolutionInArea(int value, int x, int y);
+
 	bool isPossible(int value, int x, int y);
 	bool isPossibleInVerticalRaw(int value, int x);
 	bool isPossibleInHorizontalRaw(int value, int y);

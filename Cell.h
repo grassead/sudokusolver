@@ -12,6 +12,8 @@ public:
 
 	bool isFixed();
 	bool invalidate(int value);
+	bool force(int value);
+	bool isPossible(int value);
 
 	int getValue();
 

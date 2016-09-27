@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "Cell.h"
 
@@ -51,6 +52,32 @@ bool Cell::invalidate(int value)
 	mValues[value - 1] = false;
 
 	return ret;
+}
+
+bool Cell::force(int value)
+{
+	if (isFixed()) {
+		if (value == getValue()) {
+			return false;
+		} else {
+			abort();
+		}
+	}
+
+	for (int i = 0; i < 9; i++) {
+		if (value == (i+1)) {
+			mValues[i] = true;
+		} else {
+			mValues[i] = false;
+		}
+	}
+
+	return true;
+}
+
+bool Cell::isPossible(int value)
+{
+	return mValues[value - 1];
 }
 
 int Cell::getValue()
