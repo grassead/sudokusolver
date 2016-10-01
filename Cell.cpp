@@ -54,7 +54,7 @@ bool Cell::invalidate(int value)
 	return ret;
 }
 
-bool Cell::force(int value)
+bool Cell::set(int value)
 {
 	if (isFixed()) {
 		if (value == getValue()) {
@@ -73,6 +73,17 @@ bool Cell::force(int value)
 	}
 
 	return true;
+}
+
+bool Cell::isPossible()
+{
+	for (int i = 1;  i <= 9; i++) {
+		if (isPossible(i)) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool Cell::isPossible(int value)

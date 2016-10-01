@@ -12,8 +12,9 @@ public:
 
 	bool isFixed();
 	bool invalidate(int value);
-	bool force(int value);
+	bool set(int value);
 	bool isPossible(int value);
+	bool isPossible();
 
 	int getValue();
 

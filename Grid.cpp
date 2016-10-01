@@ -59,142 +59,167 @@ void Grid::advancedDump()
 
 bool Grid::resolve(Grid* grid)
 {
-	bool resolved;
-
-	resolved = grid->basicResolve();
-/*
-	while (!resolved) {
-
+	if (!grid->check()) {
+		return false;
 	}
-*/
-	return resolved;
+
+	if (!grid->basicResolve()) {
+		return false;
+	}
+
+	return grid->isSolved();
 }
 
 bool Grid::basicResolve()
 {
 	bool updated;
+	bool isPossible;
+	bool isUnique;
+
 	do {
 		updated = false;
 		for (int i = 0; i < 9; i++) {
 			for (int j = 0; j < 9; j++) {
 				for (int value = 1; value <= 9; value++) {
-					if (mCells[i][j]->isFixed()) {
-						continue;
-					}
-					if (!isPossible(value, i, j)) {
-						updated |= mCells[i][j]->invalidate(value);
-					} else if (isAUniqueSolution(value, i, j)) {
-						updated |= mCells[i][j]->force(value);
+					if (mCells[i][j]->isPossible(value)) {
+						check(value, i, j, &isPossible, &isUnique);
+						if (!isPossible) {
+							updated |= mCells[i][j]->invalidate(value);
+							if (!mCells[i][j]->isPossible()) {
+								return false;
+							}
+						} else if (isUnique) {
+							updated |= mCells[i][j]->set(value);
+						}
 					}
 				}
 			}
 		}
 	} while (updated);
 
-	return isSolved();
-}
-
-bool Grid::isAUniqueSolution(int value, int x, int y)
-{
-	if (isAUniqueSolutionInVerticalRaw(value, x, y) ||
-	    isAUniqueSolutionInHorizontalRaw(value, x, y) ||
-	    isAUniqueSolutionInArea(value, x, y)) {
-		return true;
-	}
-
-	return false;
-}
-
-bool Grid::isAUniqueSolutionInVerticalRaw(int value, int x, int y)
-{
-	for (int i = 0; i < 9; i++) {
-		if (i != y && mCells[x][i]->isPossible(value)) {
-			return false;
-		}
-	}
-
 	return true;
 }
 
-bool Grid::isAUniqueSolutionInHorizontalRaw(int value, int x, int y)
+void Grid::check(int value, int x, int y, bool* isPossible, bool* isUnique)
 {
-	for (int i = 0; i < 9; i++) {
-		if (i != x && mCells[i][y]->isPossible(value)) {
-			return false;
-		}
+	checkHorizontal(value, x, y , isPossible, isUnique);
+	if (!(*isPossible)) {
+		return;
 	}
 
-	return true;
+	checkVertical(value, x, y , isPossible, isUnique);
+	if (!(*isPossible)) {
+		return;
+	}
+
+	checkArea(value, x, y , isPossible, isUnique);
 }
 
-bool Grid::isAUniqueSolutionInArea(int value, int x, int y)
+void Grid::checkHorizontal(int value, int x, int y, bool* isPossible, bool* isUnique)
+{
+	*isPossible = true;
+	*isUnique   = true;
+
+	for (int i = 0; i < 9; i++) {
+		if (i == y) {
+			continue;
+		}
+
+		if (mCells[x][i]->getValue() == value) {
+			*isPossible = false;
+			*isUnique   = false;
+			break;
+		}
+
+		if (mCells[x][i]->isPossible(value)) {
+			*isUnique = false;
+		}
+	}
+}
+
+void Grid::checkVertical(int value, int x, int y, bool* isPossible, bool* isUnique)
+{
+	*isPossible = true;
+	*isUnique   = true;
+
+	for (int i = 0; i < 9; i++) {
+
+		if (i == x) {
+			continue;
+		}
+
+		if (mCells[i][y]->getValue() == value) {
+			*isPossible = false;
+			*isUnique   = false;
+			break;
+		}
+
+		if (mCells[i][y]->isPossible(value)) {
+			*isUnique = false;
+		}
+	}
+}
+
+void Grid::checkArea(int value, int x, int y, bool* isPossible, bool* isUnique)
 {
 	int macroX = ((int)(x / 3) * 3);
 	int macroY = ((int)(y / 3) * 3);
 
+	*isPossible = true;
+	*isUnique   = true;
+
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
+
 			if (((macroX + i) == x) && ((macroY + j) == y)) {
 				continue;
 			}
-			if (mCells[macroX + i][macroY + j]->isPossible(value)) {
-				return false;
-			}
-		}
-	}
 
-	return true;
-}
-
-bool Grid::isPossibleInVerticalRaw(int value, int x)
-{
-	for (int i = 0; i < 9; i++) {
-		if (mCells[x][i]->getValue() == value) {
-			return false;
-		}
-	}
-	return true;
-}
-
-bool Grid::isPossibleInHorizontalRaw(int value, int y)
-{
-	for (int i = 0; i < 9; i++) {
-		if (mCells[i][y]->getValue() == value) {
-			return false;
-		}
-	}
-	return true;
-}
-
-bool Grid::isPossibleInArea(int value, int x, int y)
-{
-	int macroX = ((int)(x / 3) * 3);
-	int macroY = ((int)(y / 3) * 3);
-
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
 			if (mCells[macroX + i][macroY + j]->getValue() == value) {
-				return false;
+				*isPossible = false;
+				*isUnique   = false;
+				goto exit;
+			}
+
+			if (mCells[macroX + i][macroY + j]->isPossible(value)) {
+				*isUnique = false;
 			}
 		}
 	}
 
-	return true;
-}
-
-bool Grid::isPossible(int value, int x, int y)
-{
-	return (isPossibleInArea(value, x, y)       &&
-			isPossibleInHorizontalRaw(value, y) &&
-			isPossibleInVerticalRaw(value, x));
+exit:
+	return;
 }
 
 bool Grid::isSolved()
 {
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
+	for (int i = 0; i < 9; i++) {
+		for (int j = 0; j < 9; j++) {
 			if (!mCells[i][j]->isFixed()) {
 				return false;
+			}
+		}
+	}
+
+	return check();
+}
+
+bool Grid::check()
+{
+	bool isPossible;
+	bool isUnique;
+
+	for (int i = 0; i < 9; i++) {
+		for (int j = 0; j < 9; j++) {
+			if (!mCells[i][j]->isFixed()) {
+				if (!mCells[i][j]->isPossible()) {
+					return false;
+				}
+			} else {
+				check(mCells[i][j]->getValue(), i, j, &isPossible, &isUnique);
+				if (!isPossible) {
+					return false;
+				}
 			}
 		}
 	}
