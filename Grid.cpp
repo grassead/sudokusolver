@@ -3,41 +3,41 @@
 
 namespace sudokusolver {
 
-
 Grid::Grid(int values[9][9])
 {
+	std::array<std::array<Cell, 9>, 9> cells;
+
 	for (int i = 0; i < 9; i++) {
 		for (int j = 0; j < 9; j++) {
 			if (values[i][j] != 0) {
-				mCells[i][j] = new Cell(values[i][j]);
+				cells[i][j] = Cell(values[i][j]);
 			} else {
-				mCells[i][j] = new Cell();
+				cells[i][j] = Cell();
 			}
 		}
 	}
+
+	mCells.push_back(cells);
 }
 
 Grid::~Grid()
 {
-	for (int i = 0; i < 9; i++) {
-		for (int j = 0; j < 9; j++) {
-			delete mCells[i][j];
-		}
-	}
+
 }
 
 void Grid::dump()
 {
+	mCells.shrink_to_fit();
 	printf(" +---------------------+\n");
 	for (int i = 0; i < 9; i++) {
 		for (int j = 0; j < 9; j++) {
 			if (j % 3 == 0) {
 				printf(" |");
 			}
-			if (mCells[i][j]->getValue() != 0) {
-				printf("%d|", mCells[i][j]->getValue());
+			if ((mCells.back())[i][j].getValue() != 0) {
+				printf("%d|", (mCells.back())[i][j].getValue());
 			} else {
-				printf("\033[31m%d\e[0m|", mCells[i][j]->getValue());
+				printf("\033[31m%d\e[0m|", (mCells.back())[i][j].getValue());
 			}
 		}
 		if (((i+1) % 3 == 0) && i != 8) {
@@ -52,19 +52,37 @@ void Grid::advancedDump()
 {
 	for (int i = 0; i < 9; i++) {
 		for (int j = 0; j < 9; j++) {
-			mCells[i][j]->dump();
+			(mCells.back())[i][j].dump();
 		}
 	}
 }
 
 bool Grid::resolve(Grid* grid)
 {
+	bool solved;
+	bool suppositionDone;
+	bool ret;
+
 	if (!grid->check()) {
 		return false;
 	}
 
 	if (!grid->basicResolve()) {
 		return false;
+	}
+
+	solved = grid->isSolved();
+
+	if (!solved) {
+		do {
+			suppositionDone = grid->doSupposition();
+			if (suppositionDone) {
+				ret = Grid::resolve(grid);
+				if (!ret) {
+					grid->undoSupposition();
+				}
+			}
+		} while (suppositionDone && !ret);
 	}
 
 	return grid->isSolved();
@@ -81,15 +99,15 @@ bool Grid::basicResolve()
 		for (int i = 0; i < 9; i++) {
 			for (int j = 0; j < 9; j++) {
 				for (int value = 1; value <= 9; value++) {
-					if (mCells[i][j]->isPossible(value)) {
+					if ((mCells.back())[i][j].isPossible(value)) {
 						check(value, i, j, &isPossible, &isUnique);
 						if (!isPossible) {
-							updated |= mCells[i][j]->invalidate(value);
-							if (!mCells[i][j]->isPossible()) {
+							updated |= (mCells.back())[i][j].invalidate(value);
+							if (!(mCells.back())[i][j].isPossible()) {
 								return false;
 							}
 						} else if (isUnique) {
-							updated |= mCells[i][j]->set(value);
+							updated |= (mCells.back())[i][j].set(value);
 						}
 					}
 				}
@@ -98,6 +116,58 @@ bool Grid::basicResolve()
 	} while (updated);
 
 	return true;
+}
+
+bool Grid::doSupposition()
+{
+	int betterX = -1;
+	int betterY = -1;
+	int betterPossibilityCount = 10;
+	int supposition = -1;
+	std::array<std::array<Cell, 9>, 9> newCells;
+
+	for (int i = 0; i < 9; i++) {
+		for (int j = 0; j < 9; j++) {
+			std::vector<int> values;
+			values = mCells.back()[i][j].getPossibleValues();
+			if (values.size() > 1 && values.size() < betterPossibilityCount) {
+				betterX = i;
+				betterY = j;
+				betterPossibilityCount = values.size();
+			}
+		}
+	}
+
+	if (betterX == -1) {
+		return false;
+	}
+
+	for (int value: mCells.back()[betterX][betterY].getPossibleValues()) {
+		if (!mCells.back()[betterX][betterY].wasAlreadySupposed(value)) {
+			supposition = value;
+			break;
+		}
+	}
+
+	if (supposition == -1) {
+		return false;
+	}
+
+
+	mCells.back()[betterX][betterY].suppose(supposition);
+
+	newCells = mCells.back();
+
+	newCells[betterX][betterY].set(supposition);
+
+	mCells.push_back(newCells);
+
+	return true;
+}
+
+void Grid::undoSupposition()
+{
+	mCells.pop_back();
 }
 
 void Grid::check(int value, int x, int y, bool* isPossible, bool* isUnique)
@@ -125,13 +195,13 @@ void Grid::checkHorizontal(int value, int x, int y, bool* isPossible, bool* isUn
 			continue;
 		}
 
-		if (mCells[x][i]->getValue() == value) {
+		if ((mCells.back())[x][i].getValue() == value) {
 			*isPossible = false;
 			*isUnique   = false;
 			break;
 		}
 
-		if (mCells[x][i]->isPossible(value)) {
+		if ((mCells.back())[x][i].isPossible(value)) {
 			*isUnique = false;
 		}
 	}
@@ -148,13 +218,13 @@ void Grid::checkVertical(int value, int x, int y, bool* isPossible, bool* isUniq
 			continue;
 		}
 
-		if (mCells[i][y]->getValue() == value) {
+		if ((mCells.back())[i][y].getValue() == value) {
 			*isPossible = false;
 			*isUnique   = false;
 			break;
 		}
 
-		if (mCells[i][y]->isPossible(value)) {
+		if ((mCells.back())[i][y].isPossible(value)) {
 			*isUnique = false;
 		}
 	}
@@ -175,13 +245,13 @@ void Grid::checkArea(int value, int x, int y, bool* isPossible, bool* isUnique)
 				continue;
 			}
 
-			if (mCells[macroX + i][macroY + j]->getValue() == value) {
+			if ((mCells.back())[macroX + i][macroY + j].getValue() == value) {
 				*isPossible = false;
 				*isUnique   = false;
 				goto exit;
 			}
 
-			if (mCells[macroX + i][macroY + j]->isPossible(value)) {
+			if ((mCells.back())[macroX + i][macroY + j].isPossible(value)) {
 				*isUnique = false;
 			}
 		}
@@ -195,7 +265,7 @@ bool Grid::isSolved()
 {
 	for (int i = 0; i < 9; i++) {
 		for (int j = 0; j < 9; j++) {
-			if (!mCells[i][j]->isFixed()) {
+			if (!(mCells.back())[i][j].isFixed()) {
 				return false;
 			}
 		}
@@ -211,12 +281,12 @@ bool Grid::check()
 
 	for (int i = 0; i < 9; i++) {
 		for (int j = 0; j < 9; j++) {
-			if (!mCells[i][j]->isFixed()) {
-				if (!mCells[i][j]->isPossible()) {
+			if (!(mCells.back())[i][j].isFixed()) {
+				if (!(mCells.back())[i][j].isPossible()) {
 					return false;
 				}
 			} else {
-				check(mCells[i][j]->getValue(), i, j, &isPossible, &isUnique);
+				check((mCells.back())[i][j].getValue(), i, j, &isPossible, &isUnique);
 				if (!isPossible) {
 					return false;
 				}

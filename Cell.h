@@ -1,6 +1,9 @@
 #ifndef SUDOKU_SOLVER_CELL_H
 #define SUDOKU_SOLVER_CELL_H
 
+#include <array>
+#include <vector>
+
 namespace sudokusolver {
 
 class Cell
@@ -15,13 +18,18 @@ public:
 	bool set(int value);
 	bool isPossible(int value);
 	bool isPossible();
+	std::vector<int> getPossibleValues();
 
 	int getValue();
+
+	bool suppose(int value);
+	bool wasAlreadySupposed(int value);
 
 	void dump();
 
 private:
-	bool mValues[9];
+	std::array<bool, 9> mPossibleValues;
+	std::array<bool, 9> mAlreadySupposed;
 	bool mBase;
 
 };//class Cell

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "Cell.h"
 
@@ -10,7 +11,7 @@ namespace sudokusolver {
 Cell::Cell()
 {
 	for (int i = 0; i < 9; i++) {
-		mValues[i] = true;
+		mPossibleValues[i] = true;
 	}
 	mBase = false;
 }
@@ -19,14 +20,15 @@ Cell::Cell(int value)
 {
 	for (int i = 0; i < 9; i++) {
 		if (value == (i+1)) {
-			mValues[i] = true;
+			mPossibleValues[i] = true;
 		} else {
-			mValues[i] = false;
+			mPossibleValues[i] = false;
 		}
 	}
 
 	mBase = true;
 }
+
 
 Cell::~Cell()
 {
@@ -38,7 +40,7 @@ bool Cell::isFixed()
 	int count = 0;
 
 	for (int i = 0; i < 9; i++) {
-		if (mValues[i]) {
+		if (mPossibleValues[i]) {
 			count++;
 		}
 	}
@@ -47,9 +49,9 @@ bool Cell::isFixed()
 
 bool Cell::invalidate(int value)
 {
-	bool ret = mValues[value - 1];
+	bool ret = mPossibleValues[value - 1];
 
-	mValues[value - 1] = false;
+	mPossibleValues[value - 1] = false;
 
 	return ret;
 }
@@ -66,9 +68,9 @@ bool Cell::set(int value)
 
 	for (int i = 0; i < 9; i++) {
 		if (value == (i+1)) {
-			mValues[i] = true;
+			mPossibleValues[i] = true;
 		} else {
-			mValues[i] = false;
+			mPossibleValues[i] = false;
 		}
 	}
 
@@ -88,7 +90,7 @@ bool Cell::isPossible()
 
 bool Cell::isPossible(int value)
 {
-	return mValues[value - 1];
+	return mPossibleValues[value - 1];
 }
 
 int Cell::getValue()
@@ -98,7 +100,7 @@ int Cell::getValue()
 	}
 
 	for (int i = 0; i < 9; i++) {
-		if (mValues[i]) {
+		if (mPossibleValues[i]) {
 			return i + 1;
 		}
 	}
@@ -108,6 +110,33 @@ int Cell::getValue()
 	return 0;
 }
 
+bool Cell::suppose(int value)
+{
+	bool ret = mAlreadySupposed[value - 1];
+
+	mAlreadySupposed[value - 1] = true;
+
+	return ret;
+}
+
+bool Cell::wasAlreadySupposed(int value)
+{
+	return mAlreadySupposed[value - 1];
+}
+
+std::vector<int> Cell::getPossibleValues()
+{
+	std::vector<int> values;
+
+	for (int i = 0; i < 9; i++) {
+		if (mPossibleValues[i]) {
+			values.push_back(i+1);
+		}
+	}
+
+	return values;
+}
+
 void Cell::dump()
 {
 	int count = 0;
@@ -115,8 +144,8 @@ void Cell::dump()
 	printf("(%d)", mBase);
 	printf("|");
 	for (int i = 0; i < 9; i++) {
-		printf("%d|", mValues[i]);
-		if (mValues[i]) {
+		printf("%d|", mPossibleValues[i]);
+		if (mPossibleValues[i]) {
 			count++;
 		}
 	}
