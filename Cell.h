@@ -19,6 +19,7 @@ public:
 	bool isPossible(int value);
 	bool isPossible();
 	std::vector<int> getPossibleValues();
+	std::vector<int> getPossibleSupposition();
 
 	int getValue();
 
@@ -31,6 +32,7 @@ private:
 	std::array<bool, 9> mPossibleValues;
 	std::array<bool, 9> mAlreadySupposed;
 	bool mBase;
+	bool mFixed;
 
 };//class Cell
 

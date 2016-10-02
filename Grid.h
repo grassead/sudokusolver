@@ -33,10 +33,12 @@ private:
 	bool findPlaceForSupposition(int* x, int* y);
 	bool findValueForSupposition(int x, int y, int* value);
 	bool doSupposition();
-	void undoSupposition();
+	bool undoSupposition();
 
 	bool isSolved();
 	bool check();
+
+	void dump(std::array<std::array<Cell, 9>, 9> cells);
 
 	std::vector<std::array<std::array<Cell, 9>, 9>> mCells;
 };

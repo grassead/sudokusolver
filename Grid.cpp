@@ -3,6 +3,9 @@
 
 namespace sudokusolver {
 
+static int sSupposition = 0;
+static int sSuppositionTot = 0;
+
 Grid::Grid(int values[9][9])
 {
 	std::array<std::array<Cell, 9>, 9> cells;
@@ -27,17 +30,23 @@ Grid::~Grid()
 
 void Grid::dump()
 {
-	mCells.shrink_to_fit();
+	dump(mCells.back());
+}
+
+void Grid::dump(std::array<std::array<Cell, 9>, 9> cells)
+{
+	printf("Total supposition count : %d\n", sSuppositionTot);
+	printf("supposition count : %d\n", sSupposition);
 	printf(" +---------------------+\n");
 	for (int i = 0; i < 9; i++) {
 		for (int j = 0; j < 9; j++) {
 			if (j % 3 == 0) {
 				printf(" |");
 			}
-			if ((mCells.back())[i][j].getValue() != 0) {
-				printf("%d|", (mCells.back())[i][j].getValue());
+			if (cells[i][j].getValue() != 0) {
+				printf("%d|", cells[i][j].getValue());
 			} else {
-				printf("\033[31m%d\e[0m|", (mCells.back())[i][j].getValue());
+				printf("\033[31m%d\e[0m|", cells[i][j].getValue());
 			}
 		}
 		if (((i+1) % 3 == 0) && i != 8) {
@@ -60,8 +69,9 @@ void Grid::advancedDump()
 bool Grid::resolve(Grid* grid)
 {
 	bool solved;
-	bool suppositionDone;
+	bool suppositionDone = true;
 	bool ret;
+	bool undo = true;
 
 	if (!grid->check()) {
 		return false;
@@ -74,15 +84,19 @@ bool Grid::resolve(Grid* grid)
 	solved = grid->isSolved();
 
 	if (!solved) {
+		ret = false;
+		undo = true;
 		do {
-			suppositionDone = grid->doSupposition();
-			if (suppositionDone) {
-				ret = Grid::resolve(grid);
-				if (!ret) {
-					grid->undoSupposition();
+			if (grid->doSupposition()) {
+				if (Grid::resolve(grid)) {
+					return grid->check();
 				}
 			}
-		} while (suppositionDone && !ret);
+
+			if (!grid->undoSupposition()) {
+				return false;
+			}
+		} while (1);
 	}
 
 	return grid->check();
@@ -99,7 +113,7 @@ bool Grid::basicResolve()
 		for (int i = 0; i < 9; i++) {
 			for (int j = 0; j < 9; j++) {
 				for (int value = 1; value <= 9; value++) {
-					if ((mCells.back())[i][j].isPossible(value)) {
+					if ((mCells.back())[i][j].isPossible(value) && !((mCells.back())[i][j].isFixed())) {
 						check(value, i, j, &isPossible, &isUnique);
 						if (!isPossible) {
 							updated |= (mCells.back())[i][j].invalidate(value);
@@ -122,11 +136,9 @@ bool Grid::findValueForSupposition(int x, int y, int* value)
 {
 	int supposition = -1;
 
-	for (int lvalue: mCells.back()[x][y].getPossibleValues()) {
-		if (!mCells.back()[x][y].wasAlreadySupposed(lvalue)) {
-			supposition = lvalue;
-			break;
-		}
+	for (int lvalue: mCells.back()[x][y].getPossibleSupposition()) {
+		supposition = lvalue;
+		break;
 	}
 
 	if (supposition == -1) {
@@ -147,7 +159,7 @@ bool Grid::findPlaceForSupposition(int* x, int* y)
 	for (int i = 0; i < 9; i++) {
 		for (int j = 0; j < 9; j++) {
 			std::vector<int> values;
-			values = mCells.back()[i][j].getPossibleValues();
+			values = mCells.back()[i][j].getPossibleSupposition();
 			if (values.size() > 1 && values.size() < betterPossibilityCount) {
 				betterX = i;
 				betterY = j;
@@ -176,9 +188,11 @@ bool Grid::doSupposition()
 	int x;
 	int y;
 	int supposition;
+
 	std::array<std::array<Cell, 9>, 9> newCells;
 
 	if (!findPlaceForSupposition(&x, &y)) {
+		//No more supposition available for this grid
 		return false;
 	}
 
@@ -195,15 +209,23 @@ bool Grid::doSupposition()
 	//Set the supposed  value
 	newCells[x][y].set(supposition);
 
+
 	//Mark the new grid as current
 	mCells.push_back(newCells);
-
+	sSupposition++;
+	sSuppositionTot++;
 	return true;
 }
 
-void Grid::undoSupposition()
+bool Grid::undoSupposition()
 {
+	if (mCells.size() == 1) {
+		printf("unable to undo the supposition\n");
+		return false;
+	}
+	sSupposition--;
 	mCells.pop_back();
+	return true;
 }
 
 void Grid::check(int value, int x, int y, bool* isPossible, bool* isUnique)

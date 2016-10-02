@@ -12,8 +12,10 @@ Cell::Cell()
 {
 	for (int i = 0; i < 9; i++) {
 		mPossibleValues[i] = true;
+		mAlreadySupposed[i] = false;
 	}
 	mBase = false;
+	mFixed = false;
 }
 
 Cell::Cell(int value)
@@ -24,9 +26,11 @@ Cell::Cell(int value)
 		} else {
 			mPossibleValues[i] = false;
 		}
+		mAlreadySupposed[i] = false;
 	}
 
 	mBase = true;
+	mFixed = true;
 }
 
 
@@ -37,14 +41,7 @@ Cell::~Cell()
 
 bool Cell::isFixed()
 {
-	int count = 0;
-
-	for (int i = 0; i < 9; i++) {
-		if (mPossibleValues[i]) {
-			count++;
-		}
-	}
-	return count == 1;
+	return mFixed;
 }
 
 bool Cell::invalidate(int value)
@@ -52,6 +49,21 @@ bool Cell::invalidate(int value)
 	bool ret = mPossibleValues[value - 1];
 
 	mPossibleValues[value - 1] = false;
+
+	//An update occurs
+	if (ret) {
+		int count = 0;
+		for (int i = 0; i < 9; i++) {
+			if (isPossible(i+1)) {
+				count++;
+				if (count > 1) {
+					break;
+				}
+			}
+		}
+
+		mFixed = (count == 1);
+	}
 
 	return ret;
 }
@@ -74,6 +86,7 @@ bool Cell::set(int value)
 		}
 	}
 
+	mFixed = true;
 	return true;
 }
 
@@ -130,6 +143,19 @@ std::vector<int> Cell::getPossibleValues()
 
 	for (int i = 0; i < 9; i++) {
 		if (mPossibleValues[i]) {
+			values.push_back(i+1);
+		}
+	}
+
+	return values;
+}
+
+std::vector<int> Cell::getPossibleSupposition()
+{
+	std::vector<int> values;
+
+	for (int i = 0; i < 9; i++) {
+		if (mPossibleValues[i] && !wasAlreadySupposed(i+1)) {
 			values.push_back(i+1);
 		}
 	}
