@@ -41,7 +41,7 @@ void Grid::dump()
 			}
 		}
 		if (((i+1) % 3 == 0) && i != 8) {
-			printf("\n");
+			printf("\n |                     |");
 		}
 		printf("\n");
 	}
@@ -85,7 +85,7 @@ bool Grid::resolve(Grid* grid)
 		} while (suppositionDone && !ret);
 	}
 
-	return grid->isSolved();
+	return grid->check();
 }
 
 bool Grid::basicResolve()
@@ -118,13 +118,31 @@ bool Grid::basicResolve()
 	return true;
 }
 
-bool Grid::doSupposition()
+bool Grid::findValueForSupposition(int x, int y, int* value)
+{
+	int supposition = -1;
+
+	for (int lvalue: mCells.back()[x][y].getPossibleValues()) {
+		if (!mCells.back()[x][y].wasAlreadySupposed(lvalue)) {
+			supposition = lvalue;
+			break;
+		}
+	}
+
+	if (supposition == -1) {
+		return false;
+	}
+
+	*value = supposition;
+
+	return true;
+}
+
+bool Grid::findPlaceForSupposition(int* x, int* y)
 {
 	int betterX = -1;
 	int betterY = -1;
 	int betterPossibilityCount = 10;
-	int supposition = -1;
-	std::array<std::array<Cell, 9>, 9> newCells;
 
 	for (int i = 0; i < 9; i++) {
 		for (int j = 0; j < 9; j++) {
@@ -134,6 +152,10 @@ bool Grid::doSupposition()
 				betterX = i;
 				betterY = j;
 				betterPossibilityCount = values.size();
+				if (betterPossibilityCount == 2) {
+					//We find the better place, do not need to fetch all the grid
+					goto exit;
+				}
 			}
 		}
 	}
@@ -142,24 +164,38 @@ bool Grid::doSupposition()
 		return false;
 	}
 
-	for (int value: mCells.back()[betterX][betterY].getPossibleValues()) {
-		if (!mCells.back()[betterX][betterY].wasAlreadySupposed(value)) {
-			supposition = value;
-			break;
-		}
-	}
+exit:
+	*x = betterX;
+	*y = betterY;
 
-	if (supposition == -1) {
+	return true;
+}
+
+bool Grid::doSupposition()
+{
+	int x;
+	int y;
+	int supposition;
+	std::array<std::array<Cell, 9>, 9> newCells;
+
+	if (!findPlaceForSupposition(&x, &y)) {
 		return false;
 	}
 
+	if (!findValueForSupposition(x, y, &supposition)) {
+		return false;
+	}
 
-	mCells.back()[betterX][betterY].suppose(supposition);
+	// Mark this value as tryed
+	mCells.back()[x][y].suppose(supposition);
 
+	//Copy the current grid
 	newCells = mCells.back();
 
-	newCells[betterX][betterY].set(supposition);
+	//Set the supposed  value
+	newCells[x][y].set(supposition);
 
+	//Mark the new grid as current
 	mCells.push_back(newCells);
 
 	return true;

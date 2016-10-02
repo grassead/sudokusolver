@@ -29,13 +29,15 @@ private:
 	void checkVertical(int value, int x, int y, bool* isPossible, bool* isUnique);
 	void checkArea(int value, int x, int y, bool* isPossible, bool* isUnique);
 
+
+	bool findPlaceForSupposition(int* x, int* y);
+	bool findValueForSupposition(int x, int y, int* value);
 	bool doSupposition();
 	void undoSupposition();
 
 	bool isSolved();
 	bool check();
 
-	//Cell* mCells[9][9];
 	std::vector<std::array<std::array<Cell, 9>, 9>> mCells;
 };
 
